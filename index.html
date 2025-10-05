@@ -43,9 +43,6 @@
   /* === EXIT === */
   @keyframes fadeOut{from{opacity:1}to{opacity:0}}
   @keyframes flyOutDown{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}
-
-  /* Runtime hook */
-  .play{animation:var(--anim) var(--dur,600ms) var(--ease,ease) var(--delay,0ms) both}
 </style>
 </head>
 <body>
@@ -56,6 +53,7 @@
       <div class="toolbar">
         <button id="playAll">Play All</button>
         <button class="secondary" id="reset">Reset</button>
+        <button class="secondary" id="runTests">Run Tests</button>
         <span class="meta" id="seqInfo"></span>
       </div>
     </div>
@@ -144,6 +142,11 @@
         <li>Per-card <strong>Play</strong>, <strong>Emphasize</strong> (Pulse/Teeter), and <strong>Exit</strong> (Fade Out/Fly Out Down).</li>
       </ul>
     </div>
+
+    <div class="card" style="margin-top:16px; display:none" id="testPanel">
+      <h3>Test Results</h3>
+      <pre id="testLog" style="white-space:pre-wrap"></pre>
+    </div>
   </main>
 
   <noscript>
@@ -166,18 +169,18 @@
 
   function run(el, name, dur=600, delay=0){
     const kf = animMap[name] || 'fadeIn';
-    el.style.setProperty('--anim', kf);
-    el.style.setProperty('--dur', dur+"ms");
-    el.style.setProperty('--delay', delay+"ms");
-    el.classList.remove('play'); void el.offsetWidth; el.classList.add('play');
+    el.style.animation = `${kf} ${dur}ms ease ${delay}ms both`;
   }
 
   function clearAll(){
-    cards.forEach(c=>{ c.classList.remove('play'); c.style.animation = 'none'; c.style.removeProperty('--delay'); });
+    cards.forEach(c=>{
+      c.style.removeProperty('animation');
+      c.style.removeProperty('--delay');
+    });
     seqInfo.textContent = '';
   }
 
-  // Per-card buttons
+  // ---- Play, Emphasize, Exit (per-card)
   document.querySelectorAll('.playBtn').forEach(btn => btn.addEventListener('click', e => {
     const card = e.target.closest('.card');
     run(card, card.dataset.anim, +card.dataset.dur || 600, 0);
@@ -193,36 +196,69 @@
     run(card, e.currentTarget.dataset.exit || 'fadeOut', 500, 0);
   }));
 
-  // Play All sequencing
-  document.getElementById('playAll').addEventListener('click', () => {
-    clearAll();
+  // ---- Timeline computation helper (used by Play All & tests)
+  function computeTimeline(){
     const timeline = [];
-    let currentEnd = 0; // ms
+    let currentDelay = 0;
+    let started = false;
+    let lastDur = 0;
     cards.forEach((el, i) => {
       const start = el.dataset.start || 'after';
       const dur = +el.dataset.dur || 600;
       const name = el.dataset.anim || 'fadeIn';
-
-      if(start === 'onClick'){
-        return; // skip in Play All
-      }
-      if(start === 'with'){
-        // start at currentEnd (parallel with previous)
-      } else if(start === 'after'){
-        // start after latest scheduled end
-        // currentEnd already marks the last end
-      }
-
-      run(el, name, dur, currentEnd);
-      timeline.push({i:i+1, name, start: currentEnd});
-      // update currentEnd to the max end time among those starting at this tick
-      // For simplicity, each "with" uses same delay; after we add, set currentEnd += dur
-      currentEnd += dur;
+      if (start === 'onClick') return; // excluded from Play All
+      if (start === 'after' && started){ currentDelay += lastDur; }
+      timeline.push({ index: i+1, name, start: currentDelay, dur });
+      started = true;
+      lastDur = dur;
     });
-    seqInfo.textContent = 'Timeline → ' + timeline.map(t => `#${t.i}:${t.name} @ ${t.start}ms`).join(' | ');
+    return timeline;
+  }
+
+  // ---- Play All sequencing
+  document.getElementById('playAll').addEventListener('click', () => {
+    clearAll();
+    const timeline = computeTimeline();
+    timeline.forEach(item => {
+      const el = cards[item.index - 1];
+      run(el, item.name, item.dur, item.start);
+    });
+    seqInfo.textContent = 'Timeline → ' + timeline.map(t => `#${t.index}:${t.name} @ ${t.start}ms`).join(' | ');
   });
 
   document.getElementById('reset').addEventListener('click', clearAll);
+
+  // ---- Minimal tests
+  function runTests(){
+    const log = [];
+    const ok = (cond, msg) => log.push(`${cond ? '✅' : '❌'} ${msg}`);
+
+    // Test 1: Required animations present
+    ['appear','flyInLeft','zoomIn','floatIn','wipeRight','wipeUp','growTurn','pulse','teeter','fadeOut','flyOutDown']
+      .forEach(k => ok(!!animMap[k], `animMap contains "${k}"`));
+
+    // Test 2: run() sets inline animation
+    const first = cards[0];
+    run(first, 'fadeIn', 600, 0);
+    ok((first.style.animation || '').includes('fadeIn') && (first.style.animation || '').includes('600ms'), 'run() applies fadeIn 600ms');
+
+    // Test 3: clearAll() removes inline animation
+    clearAll();
+    ok(!(cards[0].style.animation && cards[0].style.animation.length), 'clearAll() removes inline animation');
+
+    // Test 4: computeTimeline excludes onClick and is non-decreasing
+    const tl = computeTimeline();
+    ok(tl.length > 0, 'computeTimeline returns entries');
+    const nonDec = tl.every((t,i,arr)=> i===0 || t.start >= arr[i-1].start);
+    ok(nonDec, 'Timeline start times are non-decreasing');
+
+    const testPanel = document.getElementById('testPanel');
+    const testLog = document.getElementById('testLog');
+    testPanel.style.display = 'block';
+    testLog.textContent = log.join('\n');
+    console.log('\nTEST RESULTS\n' + log.join('\n'));
+  }
+  document.getElementById('runTests').addEventListener('click', runTests);
 
   // Start visible with no animations applied
   clearAll();
