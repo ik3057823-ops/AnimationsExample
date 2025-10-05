@@ -25,7 +25,8 @@
   .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 
   /* =============== ANIMATION PRIMITIVES (PowerPoint‑like) =============== */
-  .anim{opacity:0}
+  .anim{opacity:1}
+  .hidden{opacity:0}
   .anim.play{animation: var(--anim-name) var(--dur,600ms) var(--ease,ease) var(--delay,0ms) both}
 
   /* Fade / Appear */
@@ -118,6 +119,11 @@
       </div>
     </div>
   </header>
+  <noscript>
+    <div class="wrap"><div class="card" style="border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff">
+      JavaScript is disabled, so buttons won't animate—but all cards are visible. Enable JS to use Play/Reset/Stagger.
+    </div></div>
+  </noscript>
 
   <main class="wrap">
     $1
@@ -194,9 +200,12 @@
   function reset(){
     deck.forEach(el=>{
       el.classList.remove('play');
-      el.style.opacity = 0;
+      el.style.opacity = 1; // visible by default
       el.style.removeProperty('--delay');
+      el.style.animation = 'none';
     });
+    seqInfo.textContent = '';
+  });
     seqInfo.textContent = '';
   }
 
