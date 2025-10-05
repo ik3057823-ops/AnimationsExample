@@ -1,266 +1,231 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PPT‑style Card Animations</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PPT Card Animations — Spec Version</title>
 <style>
-  :root{
-    --bg:#fff;--fg:#0f172a;--muted:#64748b;--accent:#2563eb;--border:#e2e8f0;--card:#f8fafc;
-    --shadow:0 10px 25px rgba(2,8,23,.08);--radius:18px
-  }
+  :root{--bg:#fff;--fg:#0f172a;--muted:#64748b;--border:#e2e8f0;--card:#ffffff;--panel:#f8fafc;--shadow:0 10px 25px rgba(2,8,23,.08);--radius:18px}
   html,body{background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;margin:0}
-  header{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:saturate(140%) blur(6px);border-bottom:1px solid var(--border);z-index:50}
+  header{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:saturate(140%) blur(6px);border-bottom:1px solid var(--border);z-index:10}
   .wrap{max-width:1100px;margin:0 auto;padding:20px}
-  h1{margin:.2rem 0}
-  p.lead{margin:.2rem 0 1rem;color:var(--muted)}
+  h1{margin:.25rem 0}
+  p.lead{margin:.25rem 0 1rem;color:var(--muted)}
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:.5rem 0 1rem}
   button{background:var(--fg);color:#fff;border:0;border-radius:12px;padding:10px 14px;box-shadow:var(--shadow);cursor:pointer}
   button.secondary{background:#1118270d;color:var(--fg);border:1px solid var(--border)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;opacity:1;transform:translateZ(0)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;opacity:1}
   .card h3{margin:.2rem 0 .4rem}
   .meta{color:var(--muted);font-size:.9rem}
   .badge{display:inline-block;font-size:.75rem;background:#e0e7ff;color:#1e3a8a;border-radius:999px;padding:2px 8px}
   .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 
-  /* =============== ANIMATION PRIMITIVES (PowerPoint‑like) =============== */
-  .anim{opacity:1}
-  .hidden{opacity:0}
-  .anim.play{animation: var(--anim-name) var(--dur,600ms) var(--ease,ease) var(--delay,0ms) both}
-
-  /* Fade / Appear */
+  /* === ENTRANCE === */
   @keyframes appear{from{opacity:0}to{opacity:1}}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  @keyframes fadeOut{from{opacity:1}to{opacity:0}}
-
-  /* Fly In (from directions) */
   @keyframes flyInLeft{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
   @keyframes flyInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
   @keyframes flyInUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
   @keyframes flyInDown{from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:translateY(0)}}
-
-  /* Zoom / Grow & Turn */
-  @keyframes zoomIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
-  @keyframes growTurn{0%{opacity:0;transform:scale(.9) rotate(-2deg)}60%{opacity:1;transform:scale(1.03) rotate(1deg)}100%{transform:scale(1) rotate(0)}}
-
-  /* Float In (gentle overshoot) */
+  @keyframes zoomIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
   @keyframes floatIn{0%{opacity:0;transform:translateY(24px)}70%{opacity:1;transform:translateY(-6px)}100%{transform:translateY(0)}}
-
-  /* Wipe (clip reveal) */
+  /* Wipes */
   .wipe{overflow:hidden}
   @keyframes wipeRight{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
   @keyframes wipeUp{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+  @keyframes growTurn{0%{opacity:0;transform:scale(.9) rotate(-2deg)}60%{opacity:1;transform:scale(1.03) rotate(1deg)}100%{transform:scale(1) rotate(0)}}
 
-  /* Emphasis (Pulse / Teeter) */
+  /* === EMPHASIS === */
   @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
   @keyframes teeter{0%,100%{transform:rotate(0)}25%{transform:rotate(-2deg)}75%{transform:rotate(2deg)}}
 
-  /* Exit (Fly Out / Fade Out) */
+  /* === EXIT === */
+  @keyframes fadeOut{from{opacity:1}to{opacity:0}}
   @keyframes flyOutDown{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(40px)}}
 
-  /* Utility */
-  .sequence{font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.9rem; color:var(--muted)}
-  /* === More PPT-style effects === */
-  .origin-left{ transform-origin:left center; }
-  .origin-right{ transform-origin:right center; }
-
-  /* Split (from center) */
-  @keyframes splitVertical{
-    0%{opacity:0;clip-path:inset(0 50% 0 50%)}
-    100%{opacity:1;clip-path:inset(0 0 0 0)}
-  }
-  @keyframes splitHorizontal{
-    0%{opacity:0;clip-path:inset(50% 0 50% 0)}
-    100%{opacity:1;clip-path:inset(0 0 0 0)}
-  }
-
-  /* Peek In (small overshoot then settle) */
-  @keyframes peekIn{
-    0%{opacity:0;transform:translateX(24px)}
-    70%{opacity:1;transform:translateX(-6px)}
-    100%{transform:translateX(0)}
-  }
-
-  /* Wheel In (rotate + zoom) */
-  @keyframes wheelIn{
-    0%{opacity:0;transform:rotate(-8deg) scale(.9)}
-    100%{opacity:1;transform:rotate(0) scale(1)}
-  }
-
-  /* Blur Zoom In (morph-ish) */
-  @keyframes blurZoomIn{
-    0%{opacity:0;transform:scale(.9);filter:blur(6px)}
-    100%{opacity:1;transform:scale(1);filter:blur(0)}
-  }
-
-  /* Flip In Y */
-  @keyframes flipInY{
-    0%{opacity:0;transform:rotateY(-90deg)}
-    100%{opacity:1;transform:rotateY(0)}
-  }
-
-  /* Curtain Down (wipe from top) */
-  @keyframes curtainDown{
-    from{clip-path:inset(0 0 100% 0)}
-    to{clip-path:inset(0 0 0 0)}
-  }
-<\/style>
+  /* Runtime hook */
+  .play{animation:var(--anim) var(--dur,600ms) var(--ease,ease) var(--delay,0ms) both}
+</style>
 </head>
 <body>
   <header>
     <div class="wrap">
-      <h1>PPT‑style Card Animations</h1>
-      <p class="lead">Entrance, emphasis, and exit animations for “cards,” with <em>On Click</em>, <em>With Previous</em>, and <em>After Previous</em> sequencing—like PowerPoint.</p>
-      $1
-        <button id=\"stagger\">Stagger In<\/button>
+      <h1>PPT Card Animations — Spec Version</h1>
+      <p class="lead">Entrance: Appear/Fade, Fly In (L/R/U/D), Zoom In, Float In, Wipe (Right/Up), Grow & Turn · Emphasis: Pulse, Teeter · Exit: Fade Out, Fly Out Down · Sequencing: On Click, With Previous, After Previous.</p>
+      <div class="toolbar">
+        <button id="playAll">Play All</button>
         <button class="secondary" id="reset">Reset</button>
-        <span class="sequence" id="seqInfo"></span>
+        <span class="meta" id="seqInfo"></span>
       </div>
     </div>
   </header>
-  <noscript>
-    <div class="wrap"><div class="card" style="border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff">
-      JavaScript is disabled, so buttons won't animate—but all cards are visible. Enable JS to use Play/Reset/Stagger.
-    </div></div>
-  </noscript>
 
   <main class="wrap">
-    $1
-
-      <!-- Additional PPT-style examples -->
-      <section class=\"card anim wipe\" data-anim=\"splitVertical\" data-start=\"after\" data-dur=\"650\">
-        <h3>7) Split Vertical</h3>
-        <p class=\"meta\">Entrance: Split from center vertically • After Previous</p>
-        <span class=\"badge\">Entrance</span>
-        <div class=\"row\"><button class=\"trigger\">Play</button><button class=\"emph secondary\" data-anim=\"pulse\">Emphasize</button></div>
+    <div class="grid" id="deck">
+      <!-- ENTRANCE examples -->
+      <section class="card wipe" data-anim="appear" data-start="onClick" data-dur="600">
+        <h3>1) Appear / Fade In</h3>
+        <p class="meta">Entrance: Appear/Fade In • Start: On Click</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="pulse">Emphasize</button><button class="exit secondary" data-exit="fadeOut">Exit</button></div>
       </section>
 
-      <section class=\"card anim wipe\" data-anim=\"splitHorizontal\" data-start=\"with\" data-dur=\"650\">
-        <h3>8) Split Horizontal</h3>
-        <p class=\"meta\">Entrance: Split from center horizontally • With Previous</p>
-        <span class=\"badge\">Entrance</span>
-        <div class=\"row\"><button class=\"trigger\">Play</button><button class=\"exit secondary\" data-anim=\"fadeOut\">Exit</button></div>
+      <section class="card" data-anim="flyInLeft" data-start="with" data-dur="600">
+        <h3>2) Fly In Left</h3>
+        <p class="meta">Entrance: Fly In (Left) • With Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="teeter">Emphasize</button><button class="exit secondary" data-exit="flyOutDown">Exit</button></div>
       </section>
 
-      <section class=\"card anim origin-left\" data-anim=\"flipInY\" data-start=\"after\" data-dur=\"700\">
-        <h3>9) Flip In (Y)</h3>
-        <p class=\"meta\">Entrance: 3D Flip in Y • After Previous</p>
-        <span class=\"badge\">Entrance</span>
-        <div class=\"row\"><button class=\"trigger\">Play</button><button class=\"emph secondary\" data-anim=\"teeter\">Emphasize</button></div>
+      <section class="card" data-anim="flyInRight" data-start="after" data-dur="600">
+        <h3>3) Fly In Right</h3>
+        <p class="meta">Entrance: Fly In (Right) • After Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="pulse">Emphasize</button><button class="exit secondary" data-exit="fadeOut">Exit</button></div>
       </section>
 
-      <section class=\"card anim\" data-anim=\"peekIn\" data-start=\"with\" data-dur=\"600\">
-        <h3>10) Peek In</h3>
-        <p class=\"meta\">Entrance: Peek In (overshoot) • With Previous</p>
-        <span class=\"badge\">Entrance</span>
-        <div class=\"row\"><button class=\"trigger\">Play</button><button class=\"emph secondary\" data-anim=\"pulse\">Emphasize</button></div>
+      <section class="card" data-anim="flyInUp" data-start="after" data-dur="600">
+        <h3>4) Fly In Up</h3>
+        <p class="meta">Entrance: Fly In (Up) • After Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="teeter">Emphasize</button><button class="exit secondary" data-exit="flyOutDown">Exit</button></div>
       </section>
 
-      <section class=\"card anim\" data-anim=\"wheelIn\" data-start=\"after\" data-dur=\"700\">
-        <h3>11) Wheel In</h3>
-        <p class=\"meta\">Entrance: Rotate + Zoom • After Previous</p>
-        <span class=\"badge\">Entrance</span>
-        <div class=\"row\"><button class=\"trigger\">Play</button><button class=\"exit secondary\" data-anim=\"flyOutDown\">Exit</button></div>
+      <section class="card" data-anim="flyInDown" data-start="with" data-dur="600">
+        <h3>5) Fly In Down</h3>
+        <p class="meta">Entrance: Fly In (Down) • With Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="pulse">Emphasize</button><button class="exit secondary" data-exit="fadeOut">Exit</button></div>
       </section>
 
-      <section class=\"card anim\" data-anim=\"blurZoomIn\" data-start=\"after\" data-dur=\"700\">
-        <h3>12) Crossfade Zoom (soft)</h3>
-        <p class=\"meta\">Entrance: Blur + Zoom In • After Previous</p>
-        <span class=\"badge\">Entrance</span>
-        <div class=\"row\"><button class=\"trigger\">Play</button><button class=\"emph secondary\" data-anim=\"pulse\">Emphasize</button></div>
+      <section class="card" data-anim="zoomIn" data-start="after" data-dur="650">
+        <h3>6) Zoom In</h3>
+        <p class="meta">Entrance: Zoom In • After Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="pulse">Emphasize</button><button class="exit secondary" data-exit="fadeOut">Exit</button></div>
       </section>
 
-    $2
-      <h3>How sequencing works</h3>
-      <ol>
-        <li><strong>On Click</strong>: Only animates when you press its <em>Play</em> button.</li>
+      <section class="card" data-anim="floatIn" data-start="after" data-dur="650">
+        <h3>7) Float In</h3>
+        <p class="meta">Entrance: Float In • After Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="teeter">Emphasize</button><button class="exit secondary" data-exit="flyOutDown">Exit</button></div>
+      </section>
+
+      <section class="card wipe" data-anim="wipeRight" data-start="after" data-dur="700">
+        <h3>8) Wipe Right</h3>
+        <p class="meta">Entrance: Wipe (Right) • After Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="pulse">Emphasize</button><button class="exit secondary" data-exit="fadeOut">Exit</button></div>
+      </section>
+
+      <section class="card wipe" data-anim="wipeUp" data-start="with" data-dur="700">
+        <h3>9) Wipe Up</h3>
+        <p class="meta">Entrance: Wipe (Up) • With Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="teeter">Emphasize</button><button class="exit secondary" data-exit="fadeOut">Exit</button></div>
+      </section>
+
+      <section class="card" data-anim="growTurn" data-start="after" data-dur="700">
+        <h3>10) Grow & Turn</h3>
+        <p class="meta">Entrance: Grow & Turn • After Previous</p>
+        <span class="badge">Entrance</span>
+        <div class="row"><button class="playBtn">Play</button><button class="emph secondary" data-emph="pulse">Emphasize</button><button class="exit secondary" data-exit="flyOutDown">Exit</button></div>
+      </section>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3>Controls</h3>
+      <ul>
+        <li><strong>On Click</strong>: Only animates when you press <em>Play</em>.</li>
         <li><strong>With Previous</strong>: Starts at the same time as the last scheduled animation.</li>
         <li><strong>After Previous</strong>: Starts after the last scheduled animation finishes.</li>
-      </ol>
-      <p>You can mix these to mimic PowerPoint timelines. Use <strong>Play All</strong> to run the sequence; <strong>Reset</strong> to return to the start.</p>
+        <li>Per-card <strong>Play</strong>, <strong>Emphasize</strong> (Pulse/Teeter), and <strong>Exit</strong> (Fade Out/Fly Out Down).</li>
+      </ul>
     </div>
   </main>
 
+  <noscript>
+    <div class="wrap"><div class="card">JavaScript is disabled. Cards remain visible but buttons won’t animate.</div></div>
+  </noscript>
+
 <script>
-  const deck = Array.from(document.querySelectorAll('.card.anim'));
+  const cards = Array.from(document.querySelectorAll('#deck .card'));
   const seqInfo = document.getElementById('seqInfo');
 
-  function setAnim(el, name, dur=600, delay=0){
-    el.style.setProperty('--anim-name', name);
+  const animMap = {
+    appear: 'appear', fadeIn: 'fadeIn',
+    flyInLeft: 'flyInLeft', flyInRight: 'flyInRight', flyInUp: 'flyInUp', flyInDown: 'flyInDown',
+    zoomIn: 'zoomIn', floatIn: 'floatIn', wipeRight: 'wipeRight', wipeUp: 'wipeUp', growTurn: 'growTurn',
+    // emphasis
+    pulse: 'pulse', teeter: 'teeter',
+    // exit
+    fadeOut: 'fadeOut', flyOutDown: 'flyOutDown'
+  };
+
+  function run(el, name, dur=600, delay=0){
+    const kf = animMap[name] || 'fadeIn';
+    el.style.setProperty('--anim', kf);
     el.style.setProperty('--dur', dur+"ms");
     el.style.setProperty('--delay', delay+"ms");
-    el.classList.remove('play'); // restart
-    // force reflow
-    void el.offsetWidth;
-    el.classList.add('play');
-    el.style.opacity = 1;
+    el.classList.remove('play'); void el.offsetWidth; el.classList.add('play');
   }
 
-  function reset(){
-    deck.forEach(el=>{
-      el.classList.remove('play');
-      el.style.opacity = 1; // visible by default
-      el.style.removeProperty('--delay');
-      el.style.animation = 'none';
-    });
-    seqInfo.textContent = '';
-  });
+  function clearAll(){
+    cards.forEach(c=>{ c.classList.remove('play'); c.style.animation = 'none'; c.style.removeProperty('--delay'); });
     seqInfo.textContent = '';
   }
 
-  // Per‑card Play / Emphasis / Exit controls
-  document.querySelectorAll('.card .trigger').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const card = e.target.closest('.card');
-      const name = card.dataset.anim || 'fadeIn';
-      const dur = +card.dataset.dur || 600;
-      setAnim(card, name, dur, 0);
-    });
-  });
+  // Per-card buttons
+  document.querySelectorAll('.playBtn').forEach(btn => btn.addEventListener('click', e => {
+    const card = e.target.closest('.card');
+    run(card, card.dataset.anim, +card.dataset.dur || 600, 0);
+  }));
 
-  document.querySelectorAll('.card .emph').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const card = e.target.closest('.card');
-      const name = e.target.dataset.anim || 'pulse';
-      setAnim(card, name, 600, 0);
-    });
-  });
+  document.querySelectorAll('.emph').forEach(btn => btn.addEventListener('click', e => {
+    const card = e.target.closest('.card');
+    run(card, e.currentTarget.dataset.emph || 'pulse', 600, 0);
+  }));
 
-  document.querySelectorAll('.card .exit').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const card = e.target.closest('.card');
-      const name = e.target.dataset.anim || 'fadeOut';
-      setAnim(card, name, 500, 0);
-    });
-  });
+  document.querySelectorAll('.exit').forEach(btn => btn.addEventListener('click', e => {
+    const card = e.target.closest('.card');
+    run(card, e.currentTarget.dataset.exit || 'fadeOut', 500, 0);
+  }));
 
-  // Play All sequencing (On Click / With / After)
-  $1
-
-  // Stagger In: like PPT "By paragraph" delays
-  document.getElementById('stagger').addEventListener('click', ()=>{
-    let delay = 0;
-    const gap = 150; // ms between cards
-    deck.forEach((el)=>{
-      const name = el.dataset.anim || 'fadeIn';
+  // Play All sequencing
+  document.getElementById('playAll').addEventListener('click', () => {
+    clearAll();
+    const timeline = [];
+    let currentEnd = 0; // ms
+    cards.forEach((el, i) => {
+      const start = el.dataset.start || 'after';
       const dur = +el.dataset.dur || 600;
-      setAnim(el, name, dur, delay);
-      delay += gap;
+      const name = el.dataset.anim || 'fadeIn';
+
+      if(start === 'onClick'){
+        return; // skip in Play All
+      }
+      if(start === 'with'){
+        // start at currentEnd (parallel with previous)
+      } else if(start === 'after'){
+        // start after latest scheduled end
+        // currentEnd already marks the last end
+      }
+
+      run(el, name, dur, currentEnd);
+      timeline.push({i:i+1, name, start: currentEnd});
+      // update currentEnd to the max end time among those starting at this tick
+      // For simplicity, each "with" uses same delay; after we add, set currentEnd += dur
+      currentEnd += dur;
     });
-    seqInfo.textContent = 'Staggered in 150ms steps.';
-  });
-      timeline.push({i, name, start:t, end:t+dur});
-    });
-
-    // Render a simple timeline readout
-    seqInfo.textContent = 'Timeline → ' + timeline.map(x=>`#${x.i+1}:${x.name} @ ${x.start}ms`).join('  |  ');
+    seqInfo.textContent = 'Timeline → ' + timeline.map(t => `#${t.i}:${t.name} @ ${t.start}ms`).join(' | ');
   });
 
-  document.getElementById('reset').addEventListener('click', reset);
+  document.getElementById('reset').addEventListener('click', clearAll);
 
-  // Start in a fully reset state
-  reset();
+  // Start visible with no animations applied
+  clearAll();
 </script>
 </body>
 </html>
